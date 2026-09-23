@@ -27,6 +27,8 @@ type Props = {
   online: boolean | null;
   onSave: () => void;
   onShare: () => void;
+  profile?: { name: string; avatar_url?: string | null } | null;
+  onEditProfile: () => void;
 };
 
 const providerCopy: Record<
@@ -81,6 +83,8 @@ export function SettingsView({
   online,
   onSave,
   onShare,
+  profile,
+  onEditProfile,
 }: Props) {
   const [onboarding, setOnboarding] = useState<any>(null);
   useEffect(() => {
@@ -104,12 +108,14 @@ export function SettingsView({
   return (
     <div className="settings-harbor">
       <section className="settings-captain-card">
-        <div className="settings-avatar">K</div>
+        <button className="settings-avatar" onClick={onEditProfile} aria-label="Edit captain profile">
+          {profile?.avatar_url ? <img src={profile.avatar_url} alt=""/> : (profile?.name || "K").charAt(0).toUpperCase()}
+        </button>
         <div>
           <span className="eyebrow">
             <UserRound size={14} /> YOUR CAPTAIN
           </span>
-          <h2>Captain Kanishka</h2>
+          <h2>Captain {profile?.name || "Kanishka"}</h2>
           <p>Straw Hat Scholar · learning locally aboard this device</p>
         </div>
         <span className={`settings-live ${online === false ? "offline" : ""}`}>

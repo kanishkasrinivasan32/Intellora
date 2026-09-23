@@ -81,6 +81,23 @@ def test_notes_persist_and_delete(client):
     assert any(n['content']=='Still here' for n in client.get('/api/notes').json())
     assert client.delete(f'/api/notes/{note["id"]}').status_code==200
 
+def test_new_chat_preserves_previous_conversation(client):
+    first = client.post('/api/tutor/conversations').json()
+    reply = client.post('/api/tutor/ask', json={'question':'hi', 'conversation_id':first['id']})
+    assert reply.status_code == 200 and reply.json()['conversation_id'] == first['id']
+    second = client.post('/api/tutor/conversations').json()
+    conversations = client.get('/api/tutor/conversations').json()
+    assert {first['id'], second['id']} <= {item['id'] for item in conversations}
+    messages = client.get(f'/api/tutor/conversations/{first["id"]}').json()
+    assert [message['role'] for message in messages] == ['user', 'assistant']
+
+def test_captain_profile_setup(client):
+    before = client.get('/api/profile')
+    assert before.status_code == 200
+    saved = client.put('/api/profile', data={'name':'Test Captain'})
+    assert saved.status_code == 200
+    assert saved.json()['name'] == 'Test Captain' and saved.json()['completed'] is True
+
 def test_model_pull_progress(monkeypatch):
     from app.services import llm_service as llm
     class Response:

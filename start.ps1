@@ -51,10 +51,24 @@ if (-not $frontendReady) {
     $process = Start-Process -FilePath $nodeExe -ArgumentList 'node_modules/vite/bin/vite.js','--host','127.0.0.1','--port','5173' -WorkingDirectory (Join-Path $projectRoot 'frontend') -WindowStyle Hidden -PassThru -RedirectStandardOutput (Join-Path $logDir 'frontend.log') -RedirectStandardError (Join-Path $logDir 'frontend-error.log')
     $started += $process.Id
 }
-$existing = @()
 $pidFile = Join-Path $logDir 'server-pids.json'
-if (Test-Path -LiteralPath $pidFile) { $existing = @(Get-Content -LiteralPath $pidFile -Raw | ConvertFrom-Json) }
-ConvertTo-Json -InputObject @($existing + $started | Select-Object -Unique) | Set-Content -LiteralPath $pidFile
+$serverPids = @($started)
+foreach ($port in @(8000, 5173)) {
+    $listener = Get-NetTCPConnection -State Listen -LocalPort $port -ErrorAction SilentlyContinue | Select-Object -First 1
+    if ($listener) {
+        $ownedProcess = Get-CimInstance Win32_Process -Filter "ProcessId = $($listener.OwningProcess)" -ErrorAction SilentlyContinue
+        if ($ownedProcess -and ($ownedProcess.CommandLine -match 'uvicorn app.main:app|node_modules/vite/bin/vite.js')) {
+            $serverPids += [int]$listener.OwningProcess
+        }
+    }
+}
+$rootPattern = [regex]::Escape($projectRoot)
+$ownedProcesses = Get-CimInstance Win32_Process | Where-Object {
+    $_.CommandLine -match $rootPattern -and $_.CommandLine -match 'uvicorn app.main:app|vite[\\/]bin[\\/]vite.js'
+}
+$serverPids += @($ownedProcesses | ForEach-Object { [int]$_.ProcessId })
+$serverPids = @($serverPids | Sort-Object -Unique)
+$serverPids | ConvertTo-Json | Set-Content -LiteralPath $pidFile
 for ($attempt = 0; $attempt -lt 45; $attempt++) {
     $backendReady = Test-IntelloraHealth
     try { $frontendReady = (Invoke-WebRequest 'http://127.0.0.1:5173' -UseBasicParsing -TimeoutSec 2).StatusCode -eq 200 } catch { $frontendReady = $false }

@@ -164,17 +164,8 @@ export function LessonVisual({ topic, title, content }: { topic: string; title: 
   }, [playing, visual.steps.length]);
 
   const step = visual.steps[active];
-  const selectStep = (index:number, navigate = true) => {
+  const selectStep = (index:number) => {
     setActive(index); setPlaying(false);
-    if (!navigate) return;
-    window.setTimeout(()=>{
-      const candidates = Array.from(document.querySelectorAll<HTMLElement>('.lesson-body .markdown h2,.lesson-body .markdown h3,.lesson-body .markdown h4,.lesson-body .markdown p'));
-      const terms = visual.steps[index].label.toLowerCase().split(/\W+/).filter(word=>word.length>3);
-      const target = candidates.find(element=>terms.some(term=>element.textContent?.toLowerCase().includes(term))) || document.querySelector<HTMLElement>('.lesson-body .markdown');
-      if (!target) return;
-      target.classList.add('content-arrival'); target.scrollIntoView({behavior:'smooth',block:'center'});
-      window.setTimeout(()=>target.classList.remove('content-arrival'),1800);
-    },80);
   };
   return <section className="lesson-visual" aria-label={`Visualization for ${title}`}>
     <div className="lesson-visual-heading">

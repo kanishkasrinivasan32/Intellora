@@ -14,6 +14,7 @@ import {
   ArrowRight,
   Bell,
   BookOpen,
+  Camera,
   Check,
   CheckCircle2,
   ChevronDown,
@@ -113,6 +114,7 @@ type Modal =
   | "search"
   | "reminders"
   | "share"
+  | "profile"
   | null;
 type Note = {
   id: string;
@@ -121,6 +123,8 @@ type Note = {
   topic: string;
   updated_at: string;
 };
+type CaptainProfile = { name: string; completed: boolean; has_avatar: boolean; avatar_url?: string | null };
+type Conversation = { id: string; title: string; preview: string; message_count: number; updated_at: string };
 const emptyProgress = {
   xp: 0,
   streak: 0,
@@ -186,16 +190,38 @@ function Hat({ className = "" }: { className?: string }) {
     </svg>
   );
 }
+
+function CaptainPortrait({ profile, className = "" }: { profile: CaptainProfile | null; className?: string }) {
+  if (profile?.avatar_url) {
+    const src = profile.avatar_url;
+    return <img className={className} src={src} alt={`${profile.name}'s profile`} />;
+  }
+  return <span className={className}>{(profile?.name || "Captain").trim().charAt(0).toUpperCase()}</span>;
+}
+
+function WantedPoster({ profile, bounty, compact = false, onEdit }: { profile: CaptainProfile | null; bounty: number; compact?: boolean; onEdit?: () => void }) {
+  return <section className={`wanted-poster ${compact ? "compact" : ""}`} aria-label={`${profile?.name || "Captain"} wanted poster`}>
+    <div className="wanted-topline">WANTED</div>
+    <div className="wanted-subline">DEAD OR ALIVE</div>
+    <div className="wanted-portrait"><CaptainPortrait profile={profile}/></div>
+    <div className="wanted-name">{(profile?.name || "Captain").toUpperCase()}</div>
+    <div className="wanted-bounty"><span>฿</span>{Number(bounty || 0).toLocaleString()} <small>BERRIES</small></div>
+    <div className="wanted-seal">INTELLORA · LEARNING VOYAGE</div>
+    {onEdit && <button className="wanted-edit" onClick={onEdit}><Camera size={14}/> Edit poster</button>}
+  </section>;
+}
 function ModalFrame({
   title,
   subtitle,
   children,
   close,
+  dismissible = true,
 }: {
   title: string;
   subtitle?: string;
   children: ReactNode;
   close: () => void;
+  dismissible?: boolean;
 }) {
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -204,7 +230,7 @@ function ModalFrame({
       ?.querySelector<HTMLElement>("input,button,select,textarea")
       ?.focus();
     const key = (e: KeyboardEvent) => {
-      if (e.key === "Escape") close();
+      if (e.key === "Escape" && dismissible) close();
       if (e.key === "Tab") {
         const all = ref.current?.querySelectorAll<HTMLElement>(
           "button:not(:disabled),input,select,textarea,a[href]",
@@ -227,12 +253,12 @@ function ModalFrame({
       document.removeEventListener("keydown", key);
       previous?.focus();
     };
-  }, [close]);
+  }, [close, dismissible]);
   return (
     <div
       className="modal-backdrop"
       onMouseDown={(e) => {
-        if (e.target === e.currentTarget) close();
+        if (e.target === e.currentTarget && dismissible) close();
       }}
     >
       <div
@@ -242,13 +268,7 @@ function ModalFrame({
         aria-modal="true"
         aria-label={title}
       >
-        <button
-          className="icon-button modal-close"
-          onClick={close}
-          aria-label="Close dialog"
-        >
-          <X size={20} />
-        </button>
+        {dismissible && <button className="icon-button modal-close" onClick={close} aria-label="Close dialog"><X size={20} /></button>}
         <span className="eyebrow">
           <Compass size={14} /> CHART SOMETHING NEW
         </span>
@@ -365,6 +385,9 @@ export default function App() {
     [searchRan, setSearchRan] = useState(false);
   const [chat, setChat] = useState<any[]>([]),
     [input, setInput] = useState("");
+  const [conversations, setConversations] = useState<Conversation[]>([]),
+    [activeConversation, setActiveConversation] = useState<string | null>(null),
+    [profile, setProfile] = useState<CaptainProfile | null>(null);
   const [selectedNote, setSelectedNote] = useState<Note | null>(null),
     [noteTitle, setNoteTitle] = useState(""),
     [noteBody, setNoteBody] = useState(""),
@@ -385,7 +408,7 @@ export default function App() {
   }, []);
   const refresh = useCallback(async () => {
     try {
-      const [c, r, f, t, p, q, n, m] = await Promise.all([
+      const [c, r, f, t, p, q, n, m, captain] = await Promise.all([
         api("/courses"),
         api("/resources"),
         api("/flashcards"),
@@ -394,6 +417,7 @@ export default function App() {
         api("/quizzes"),
         api("/notes"),
         api("/settings/models"),
+        api("/profile"),
       ]);
       setCourses(c);
       setResources(r);
@@ -403,6 +427,8 @@ export default function App() {
       setQuizzes(q);
       setNotes(n);
       setModels(m);
+      setProfile(captain);
+      if (!captain.completed) setModal((current) => current || "profile");
       setOnline(true);
     } catch {
       setOnline(false);
@@ -410,9 +436,13 @@ export default function App() {
   }, []);
   useEffect(() => {
     void refresh();
-    api("/tutor/history")
-      .then(setChat)
-      .catch(() => {});
+    api<Conversation[]>("/tutor/conversations").then(async (items) => {
+      setConversations(items);
+      if (items[0]) {
+        setActiveConversation(items[0].id);
+        setChat(await api(`/tutor/conversations/${items[0].id}`));
+      }
+    }).catch(() => {});
     api("/settings/onboarding").then(setOnboarding).catch(()=>{});
   }, [refresh]);
   useEffect(() => {
@@ -585,7 +615,9 @@ export default function App() {
       const result = await post("/tutor/ask", {
         question: text,
         topic: topicFilter === "All topics" ? null : topicFilter,
+        conversation_id: activeConversation,
       });
+      if (result.conversation_id) setActiveConversation(result.conversation_id);
       setChat((previous) => [
         ...previous,
         {
@@ -596,14 +628,25 @@ export default function App() {
         },
       ]);
       await refresh();
+      setConversations(await api("/tutor/conversations"));
+    });
+  }
+  async function openConversation(id: string) {
+    if (busy || id === activeConversation) return;
+    await run("Opening your voyage…", async () => {
+      setChat(await api(`/tutor/conversations/${id}`));
+      setActiveConversation(id);
+      setInput("");
     });
   }
   async function newChat() {
     await run("Opening a fresh chat…", async () => {
-      await api("/tutor/history", { method: "DELETE" });
+      const created = await api<Conversation>("/tutor/conversations", { method: "POST" });
+      setActiveConversation(created.id);
+      setConversations((previous) => [created, ...previous]);
       setChat([]);
       setInput("");
-      notify("Fresh chat ready.");
+      notify("Fresh chat ready. Your previous voyages are still in history.");
     });
   }
   async function gradeCard(correct: boolean) {
@@ -781,10 +824,10 @@ export default function App() {
         <details className="crew-menu">
           <summary className="crew-card">
             <div className="avatar">
-              <Hat />
+              {profile?.has_avatar ? <CaptainPortrait profile={profile}/> : <Hat />}
             </div>
             <div>
-              <strong>Captain Kanishka</strong>
+              <strong>Captain {profile?.name || "Kanishka"}</strong>
               <span>
                 <span className="tiny-dot" /> Straw Hat Scholar
               </span>
@@ -812,6 +855,10 @@ export default function App() {
                 <strong>Ship settings</strong>
                 <small>AI, sound, privacy, and storage</small>
               </span>
+            </button>
+            <button onClick={() => setModal("profile")}>
+              <BountyPosterIcon size={16} />
+              <span><strong>Edit wanted poster</strong><small>Name, portrait, and bounty poster</small></span>
             </button>
             <button onClick={() => setModal("share")}>
               <Share2 size={16} />
@@ -922,10 +969,10 @@ export default function App() {
             </button>
             <button
               className="profile-avatar"
-              onClick={() => navigate("Settings")}
-              aria-label="Open profile settings"
+              onClick={() => setModal("profile")}
+              aria-label="Open captain profile"
             >
-              K
+              <CaptainPortrait profile={profile}/>
             </button>
           </div>
         </header>
@@ -1452,6 +1499,18 @@ export default function App() {
                 "Ask freely. Learn deeply. Keep your curiosity afloat.",
                 <div className="heading-actions">{topicSelect}<button className="button outline" disabled={!!busy} onClick={()=>void newChat()}><Plus size={16}/> New chat</button></div>,
               )}
+              <div className="chat-workspace">
+              <aside className="chat-history" aria-label="Chat history">
+                <div><span className="eyebrow">VOYAGE LOG</span><strong>Chat history</strong></div>
+                <button className="chat-history-new" disabled={!!busy} onClick={() => void newChat()}><Plus size={14}/> New chat</button>
+                <div className="chat-history-list">
+                  {conversations.map((conversation) => <button key={conversation.id} className={conversation.id === activeConversation ? "active" : ""} onClick={() => void openConversation(conversation.id)}>
+                    <MessageCircle size={14}/><span><strong>{conversation.title}</strong><small>{conversation.message_count ? `${conversation.message_count} messages` : "Empty voyage"}</small></span>
+                  </button>)}
+                  {!conversations.length && <p>Your previous chats will appear here.</p>}
+                </div>
+              </aside>
+              <div className="chat-thread">
               <div className="chat-messages">
                 {chat.length === 0 && (
                   <div className="chat-welcome">
@@ -1485,7 +1544,7 @@ export default function App() {
                 {chat.map((m, i) => (
                   <div className={`message ${m.role}`} key={m.id || i}>
                     <div className="message-avatar">
-                      {m.role === "user" ? "K" : <Sparkles size={19} />}
+                      {m.role === "user" ? <CaptainPortrait profile={profile}/> : <Sparkles size={19} />}
                     </div>
                     <div className="message-content">
                       <strong>
@@ -1602,6 +1661,8 @@ export default function App() {
                 A helpful crewmate, not an infallible one. Check important
                 details against your sources.
               </p>
+              </div>
+              </div>
             </div>
           )}
 
@@ -2222,6 +2283,10 @@ export default function App() {
                 "Every small step counts.",
                 "Your journey is measured in understanding, not speed.",
               )}
+              <div className="bounty-showcase">
+                <WantedPoster profile={profile} bounty={progress.xp} onEdit={() => setModal("profile")}/>
+                <div><span className="eyebrow">YOUR LIVING BOUNTY</span><h2>Every lesson raises your legend.</h2><p>Your bounty is tied to earned XP, so the poster grows as you complete lessons, practice, and ask thoughtful questions.</p><button className="button outline" onClick={() => setModal("profile")}><Camera size={15}/> Change portrait or name</button></div>
+              </div>
               <div className="stats-grid">
                 <Stat
                   icon={<Flag />}
@@ -2323,6 +2388,8 @@ export default function App() {
                 busy={busy}
                 online={online}
                 onShare={() => setModal("share")}
+                profile={profile}
+                onEditProfile={() => setModal("profile")}
                 onSave={() =>
                   void run("Preparing your AI crew…", async () => {
                     await api("/settings/models", {
@@ -2344,6 +2411,20 @@ export default function App() {
         </main>
       </div>
 
+      {modal === "profile" && (
+        <ProfileModal
+          profile={profile}
+          bounty={progress.xp}
+          busy={busy}
+          required={!profile?.completed}
+          close={closeModal}
+          onSave={(name, avatar) => void run("Printing your wanted poster…", async () => {
+            const body = new FormData(); body.append("name", name); if (avatar) body.append("avatar", avatar);
+            const saved = await api<CaptainProfile>("/profile", { method: "PUT", body });
+            setProfile(saved); setModal(null); notify("Your wanted poster is ready.");
+          })}
+        />
+      )}
       {modal === "upload" && (
         <UploadModal
           close={closeModal}
@@ -2786,6 +2867,31 @@ function ResourceRow({
     </button>
   );
 }
+function ProfileModal({ profile, bounty, busy, required, close, onSave }: {
+  profile: CaptainProfile | null; bounty: number; busy: string; required: boolean; close: () => void;
+  onSave: (name: string, avatar: File | null) => void;
+}) {
+  const [name, setName] = useState(profile?.name || "");
+  const [avatar, setAvatar] = useState<File | null>(null);
+  const [preview, setPreview] = useState<string | null>(null);
+  useEffect(() => {
+    if (!avatar) { setPreview(null); return; }
+    const url = URL.createObjectURL(avatar); setPreview(url); return () => URL.revokeObjectURL(url);
+  }, [avatar]);
+  const previewProfile: CaptainProfile = { name: name || "Captain", completed: true, has_avatar: Boolean(preview || profile?.avatar_url), avatar_url: preview || profile?.avatar_url };
+  return <ModalFrame title={required ? "Create your wanted poster." : "Update your wanted poster."} subtitle="Choose how your captain appears across Intellora. Your bounty automatically follows the XP you earn." close={close} dismissible={!required}>
+    <div className="profile-setup">
+      <WantedPoster profile={previewProfile} bounty={bounty}/>
+      <form onSubmit={(event) => { event.preventDefault(); if (name.trim()) onSave(name.trim(), avatar); }}>
+        <label className="field-label">Captain name<input value={name} maxLength={60} autoComplete="name" onChange={(event) => setName(event.target.value)} placeholder="Your name" required/></label>
+        <label className="portrait-picker"><Camera size={20}/><span><strong>{avatar ? avatar.name : profile?.has_avatar ? "Replace profile picture" : "Add a profile picture"}</strong><small>PNG, JPEG, or WebP · up to 5 MB</small></span><input type="file" accept="image/png,image/jpeg,image/webp" onChange={(event) => setAvatar(event.target.files?.[0] || null)}/></label>
+        <p className="info-note"><LockKeyhole size={15}/>Your profile picture stays in this Intellora installation and is never sent to an AI provider.</p>
+        <button className="button primary full-width" disabled={!!busy || !name.trim()}><BountyPosterIcon size={17}/>{required ? "Begin my voyage" : "Save wanted poster"}</button>
+      </form>
+    </div>
+  </ModalFrame>;
+}
+
 function UploadModal({
   close,
   busy,

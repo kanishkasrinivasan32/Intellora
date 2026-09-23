@@ -15,6 +15,8 @@ class User(Base):
     password_hash = Column(String, nullable=True)
     created_at = Column(DateTime, default=now)
     is_admin = Column(Boolean, nullable=False, default=False)
+    avatar_filename = Column(String, nullable=True)
+    profile_completed = Column(Boolean, nullable=False, default=False)
 
 class Topic(TenantOwned, Base):
     __tablename__ = 'topics'
@@ -182,6 +184,13 @@ class UserAISetting(TenantOwned, Base):
     cloud_models = Column(JSON, default=dict)
     updated_at = Column(DateTime, default=now, onupdate=now)
 
+class ChatThread(TenantOwned, Base):
+    __tablename__ = 'chat_threads'
+    id = Column(String, primary_key=True, default=uid)
+    title = Column(String, default='New voyage')
+    created_at = Column(DateTime, default=now)
+    updated_at = Column(DateTime, default=now, onupdate=now)
+
 class ChatMessage(TenantOwned, Base):
     __tablename__ = 'chat_messages'
     id = Column(String, primary_key=True, default=uid)
@@ -189,6 +198,7 @@ class ChatMessage(TenantOwned, Base):
     content = Column(Text)
     topic = Column(String)
     citations = Column(JSON, default=list)
+    thread_id = Column(String, ForeignKey('chat_threads.id', ondelete='CASCADE'), nullable=True, index=True)
     created_at = Column(DateTime, default=now)
 
 def as_dict(obj):

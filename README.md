@@ -52,13 +52,13 @@ Both development servers bind only to `127.0.0.1`. Do not expose a local install
 ## Start exploring
 
 1. **Add knowledge:** upload a file, enter a public website/YouTube URL, or use Research to find up to three Wikipedia articles for a topic. Processing status and errors appear in the library. Failed sources can be retried.
-2. **AI first mate:** ask a question. Relevant uploaded passages become numbered citations, and you can inspect the underlying source. Without a relevant source, the tutor is instructed to label its answer as general knowledge.
+2. **AI first mate:** ask a question. Each new chat becomes a separate voyage in the persistent history panel, so starting a fresh conversation never deletes earlier chats. Relevant uploaded passages become numbered citations, and you can inspect the underlying source.
 3. **My courses:** start one of the three handcrafted starter courses or generate a complete course. Generation runs in the background and shows research, syllabus, per-lesson writing, practice generation and coverage-audit progress. Broad courses normally contain 8–20 lessons; every completed lesson receives at least five flashcards and five quiz questions.
 4. **Flashcards:** recall before flipping; choose “Still learning” or “Got it.” Edit a card to make the wording your own. Editing resets its schedule.
 5. **Quizzes:** answer every question before submitting. Grading occurs on the server; answers are withheld until submission. A submitted quiz cannot award XP again.
 6. **Visual learning:** every course lesson includes one interactive “See it happen” diagram. Click a diagram node to read its explanation and navigate to the related lesson content. The Grand Line Map provides drag-and-zoom relationships across topics and notes.
 7. **Captain’s notes:** write and save Markdown notes, or save a tutor response as a note.
-8. **My progress:** view real XP, daily streaks, lesson completions and practice accuracy. Starter content never seeds fake activity or achievements.
+8. **My progress:** view real XP, daily streaks, lesson completions and practice accuracy. Your captain name, optional local profile picture, and earned XP form a living wanted poster with a bounty measured in berries.
 
 All three starter courses have complete written lessons: Python, Machine Learning and SQL. They are introductory general-knowledge content, not generated from your files.
 

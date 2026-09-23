@@ -55,10 +55,10 @@ function FlowDiagram(props: Props) {
 }
 
 function CycleDiagram(props: Props) {
-  const positions = [[392,31],[626,89],[626,211],[392,257],[158,211],[158,89]];
+  const positions = [[392,8],[690,82],[690,238],[392,304],[94,238],[94,82]];
   return <>
-    <circle cx="450" cy="160" r="112" className="diagram-cycle-ring"/>
-    <circle cx="450" cy="160" r="61" className="diagram-core"/><text className="diagram-core-title" x="450" y="154">LEARN</text><text className="diagram-core-sub" x="450" y="174">measure · improve</text>
+    <circle cx="450" cy="190" r="114" className="diagram-cycle-ring"/>
+    <circle cx="450" cy="190" r="61" className="diagram-core"/><text className="diagram-core-title" x="450" y="184">LEARN</text><text className="diagram-core-sub" x="450" y="204">measure · improve</text>
     {props.steps.map((_, index) => { const [x, y] = positions[index % positions.length]; const next = positions[(index + 1) % positions.length]; return <g key={index}><Connector x1={x + 58} y1={y + 34} x2={next[0] + 58} y2={next[1] + 34} dashed={index === props.steps.length - 1}/><Node x={x} y={y} index={index} width={116} height={68} compact {...props}/></g>; })}
   </>;
 }
@@ -136,10 +136,11 @@ function TimelineDiagram(props: Props) {
 }
 
 export function LessonDiagram(props: Props) {
+  const height = props.kind === 'cycle' ? 380 : 320;
   return <div className="concept-diagram">
-    <svg viewBox="0 0 900 320" role="img" aria-label="Interactive lesson diagram" preserveAspectRatio="xMidYMid meet">
+    <svg viewBox={`0 0 900 ${height}`} role="img" aria-label="Interactive lesson diagram" preserveAspectRatio="xMidYMid meet">
       <DiagramDefs/>
-      <rect x="1" y="1" width="898" height="318" rx="18" fill="url(#diagram-sea)" className="diagram-canvas"/>
+      <rect x="1" y="1" width="898" height={height - 2} rx="18" fill="url(#diagram-sea)" className="diagram-canvas"/>
       {props.kind === 'network' ? <NetworkDiagram {...props}/> : props.kind === 'cluster' ? <ClusterDiagram {...props}/> : props.kind === 'matrix' ? <MatrixDiagram {...props}/> : props.kind === 'validation' ? <ValidationDiagram {...props}/> : props.kind === 'cycle' ? <CycleDiagram {...props}/> : props.kind === 'neural' ? <NeuralDiagram {...props}/> : props.kind === 'timeline' ? <TimelineDiagram {...props}/> : <FlowDiagram {...props}/>} 
     </svg>
     <div className="diagram-legend"><span><i className="input"/>Input</span><span><i className="process"/>Process</span><span><i className="decision"/>Decision</span><span><i className="output"/>Outcome</span><small>Click any shape to explain it</small></div>

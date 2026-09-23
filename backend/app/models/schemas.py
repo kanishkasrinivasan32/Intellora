@@ -11,6 +11,7 @@ class AskRequest(BaseModel):
     question: str = Field(min_length=1, max_length=12000)
     topic: str | None = None
     level: str = 'beginner'
+    conversation_id: str | None = Field(default=None, max_length=64)
 
 class URLRequest(BaseModel):
     url: str = Field(max_length=2048)

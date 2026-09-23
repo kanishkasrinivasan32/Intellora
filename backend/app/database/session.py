@@ -1,4 +1,5 @@
 from contextvars import ContextVar
+from uuid import uuid4
 from sqlalchemy import Column, String, create_engine, event, inspect, select
 from sqlalchemy.orm import DeclarativeBase, Session as ORMSession, sessionmaker, with_loader_criteria
 from app.config import settings
@@ -93,13 +94,38 @@ def migrate_legacy_schema(target_engine=engine):
                 connection.exec_driver_sql(f'CREATE INDEX IF NOT EXISTS "ix_{table.name}_user_id" ON "{table.name}" (user_id)')
         if 'users' in tables:
             existing = {column['name'] for column in inspect(connection).get_columns('users')}
-            additions = {'username': 'VARCHAR(40)', 'email': 'VARCHAR(320)', 'password_hash': 'VARCHAR', 'created_at': 'DATETIME', 'is_admin': 'BOOLEAN NOT NULL DEFAULT 0'}
+            additions = {
+                'username': 'VARCHAR(40)', 'email': 'VARCHAR(320)', 'password_hash': 'VARCHAR',
+                'created_at': 'DATETIME', 'is_admin': 'BOOLEAN NOT NULL DEFAULT 0',
+                'avatar_filename': 'VARCHAR', 'profile_completed': 'BOOLEAN NOT NULL DEFAULT 0',
+            }
             for column, definition in additions.items():
                 if column not in existing:
                     connection.exec_driver_sql(f'ALTER TABLE users ADD COLUMN {column} {definition}')
             connection.exec_driver_sql('UPDATE users SET created_at = CURRENT_TIMESTAMP WHERE created_at IS NULL')
             connection.exec_driver_sql('CREATE UNIQUE INDEX IF NOT EXISTS ix_users_username_unique ON users (username)')
             connection.exec_driver_sql('CREATE UNIQUE INDEX IF NOT EXISTS ix_users_email_unique ON users (email)')
+
+        if 'chat_messages' in tables:
+            existing = {column['name'] for column in inspect(connection).get_columns('chat_messages')}
+            if 'thread_id' not in existing:
+                connection.exec_driver_sql('ALTER TABLE chat_messages ADD COLUMN thread_id VARCHAR')
+            connection.exec_driver_sql('CREATE INDEX IF NOT EXISTS ix_chat_messages_thread_id ON chat_messages (thread_id)')
+            # Preserve every pre-thread chat as one historical conversation per account.
+            owners = connection.exec_driver_sql(
+                'SELECT user_id, MIN(created_at), MAX(created_at) FROM chat_messages '
+                'WHERE thread_id IS NULL GROUP BY user_id'
+            ).fetchall()
+            for owner, created_at, updated_at in owners:
+                thread_id = uuid4().hex
+                connection.exec_driver_sql(
+                    'INSERT INTO chat_threads (id, title, created_at, updated_at, user_id) VALUES (?, ?, ?, ?, ?)',
+                    (thread_id, 'Previous voyage', created_at, updated_at, owner),
+                )
+                connection.exec_driver_sql(
+                    'UPDATE chat_messages SET thread_id = ? WHERE user_id = ? AND thread_id IS NULL',
+                    (thread_id, owner),
+                )
 
         if 'flashcards' in tables:
             existing = {column['name'] for column in inspect(connection).get_columns('flashcards')}
