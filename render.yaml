@@ -1,0 +1,30 @@
+services:
+  - type: web
+    name: intellora-learning
+    runtime: docker
+    plan: starter
+    healthCheckPath: /api/health
+    autoDeployTrigger: commit
+    disk:
+      name: intellora-data
+      mountPath: /var/data
+      sizeGB: 10
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: MULTIUSER_MODE
+        value: "true"
+      - key: ALLOW_SIGNUP
+        value: "true"
+      - key: SESSION_SECRET
+        generateValue: true
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: AI_REQUESTS_PER_USER_DAY
+        value: "20"
+      - key: AI_REQUESTS_GLOBAL_DAY
+        value: "300"

@@ -1,0 +1,9 @@
+.git
+backend/.env
+backend/.venv
+backend/data
+frontend/node_modules
+frontend/dist
+Intellora-friend-*.zip
+**/__pycache__
+**/.pytest_cache

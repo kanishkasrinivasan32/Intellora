@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" fill="none" role="img" aria-label="Intellora compass and open-book logo">
+  <defs>
+    <linearGradient id="sea" x1="24" y1="17" x2="105" y2="113" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#1d594b"/>
+      <stop offset="1" stop-color="#123f37"/>
+    </linearGradient>
+    <linearGradient id="gold" x1="39" y1="27" x2="91" y2="94" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#f2d792"/>
+      <stop offset="1" stop-color="#c79b4b"/>
+    </linearGradient>
+  </defs>
+  <path d="M64 5c31 0 57 25 57 57 0 33-24 57-57 61C31 119 7 95 7 62 7 30 33 5 64 5Z" fill="url(#sea)"/>
+  <circle cx="64" cy="62" r="48" stroke="#f4d996" stroke-width="1.5" opacity=".65"/>
+  <path d="M64 13v8m0 82v8M15 62h8m82 0h8" stroke="#f2d792" stroke-width="2" stroke-linecap="round"/>
+  <path d="m64 24 8 29-8 9-8-9 8-29Z" fill="url(#gold)" stroke="#f7e7b8" stroke-width="1.5" stroke-linejoin="round"/>
+  <path d="m64 100-7-29 7-9 7 9-7 29Z" fill="#d06e56" stroke="#f6e1b1" stroke-width="1.5" stroke-linejoin="round"/>
+  <circle cx="64" cy="62" r="8" fill="#fff8df" stroke="#173f36" stroke-width="3"/>
+  <circle cx="64" cy="62" r="2.8" fill="#c99d52"/>
+  <path d="M28 78c13-4 25-2 36 6 11-8 23-10 36-6v25c-13-3-25-1-36 7-11-8-23-10-36-7V78Z" fill="#fff8e6" stroke="#173f36" stroke-width="3" stroke-linejoin="round"/>
+  <path d="M64 84v26M35 86c8-1 15 1 23 6m12 0c8-5 15-7 23-6M36 95c8-1 14 1 21 5m14 0c7-4 13-6 21-5" stroke="#b9aa7a" stroke-width="2" stroke-linecap="round"/>
+  <path d="M32 41c12-3 22-2 32 4 10-6 20-7 32-4" stroke="#f4d996" stroke-width="2" stroke-linecap="round" opacity=".75"/>
+  <circle cx="30" cy="41" r="3" fill="#d06e56"/>
+  <circle cx="98" cy="41" r="3" fill="#f2d792"/>
+</svg>

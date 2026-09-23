@@ -1,0 +1,9 @@
+PASS: Real upload and local embedding
+PASS: Chroma indexing finished
+PASS: Sarvam grounded answer includes the source-only fact
+PASS: Live AI flashcard generation
+PASS: Generated card review persisted
+PASS: Live AI quiz generation
+PASS: Generated quiz graded and stored
+PASS: Live course generation with lessons and linked practice
+PASS: Progress and reminders available
